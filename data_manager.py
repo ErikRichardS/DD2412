@@ -41,11 +41,8 @@ def set_ood(label):
 # Takes the directory to the input and output files. 
 # Requires the input and output files to have the same names.
 class ImageDataset(torch.utils.data.Dataset):
-	def __init__(self, train_directory, label_directory):
-		self.trn_dir = train_directory
-		self.lbl_dir = label_directory
-		self.file_list = os.listdir( train_directory)
-		self.file_list.remove(".DS_Store")
+	def __init__(self, directory, exclude):
+		
 
 
 	def __getitem__(self, idx):

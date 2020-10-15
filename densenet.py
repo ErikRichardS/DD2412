@@ -64,6 +64,12 @@ class Transition(nn.Module):
         return out
 
 
+# OoD parameter settings
+# ---------------
+# growthRate = k = 12
+# depth = 100
+# reduction = theta = 0.5
+# bottleneck = True
 class DenseNet(nn.Module):
     def __init__(self, growthRate, depth, reduction, nClasses, bottleneck):
         super(DenseNet, self).__init__()
@@ -103,6 +109,8 @@ class DenseNet(nn.Module):
             elif isinstance(m, nn.Linear):
                 m.bias.data.zero_()
 
+        self.cuda()
+
     def _make_dense(self, nChannels, growthRate, nDenseBlocks, bottleneck):
         layers = []
         for i in range(int(nDenseBlocks)):
@@ -119,5 +127,5 @@ class DenseNet(nn.Module):
         out = self.trans2(self.dense2(out))
         out = self.dense3(out)
         out = torch.squeeze(F.avg_pool2d(F.relu(self.bn1(out)), 8))
-        out = F.log_softmax(self.fc(out))
+        out = F.softmax(self.fc(out), dim=0)
         return out
