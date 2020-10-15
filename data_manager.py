@@ -15,6 +15,9 @@ import random
 # During training, we augment our training data with random flip and random cropping.
 
 transform = transforms.Compose([
+	transforms.RandomCrop(32, padding=4, padding_mode="constant"),
+	transforms.RandomHorizontalFlip(p=0.5),
+	transforms.RandomVerticalFlip(p=0.4),
 	transforms.ToTensor()
 ])
 
