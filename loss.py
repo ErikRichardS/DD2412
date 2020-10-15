@@ -5,7 +5,8 @@ from torch.autograd import Variable
 
 
 
-
+def entropy(p):
+    return p * torch.log(p)
 
 
 # Entropy based Margin-Loss
@@ -22,9 +23,9 @@ class EMLoss(nn.Module):
     def forward(self, id_input, ood_input, target):
         cross_entropy = - torch.sum( torch.log(id_input) * target ) / id_input.shape[0]
 
-        id_entropy = -torch.sum( id_input*torch.log(id_input) ) / id_input.shape[0]
+        id_entropy = -torch.sum( entropy(id_input) ) / id_input.shape[0]
 
-        ood_entropy = -torch.sum( ood_input*torch.log(ood_input) ) / ood_input.shape[0]
+        ood_entropy = -torch.sum( entropy(ood_input) ) / ood_input.shape[0]
 
         margin_diff = self.beta * max(self.margin + id_entropy - ood_entropy, 0)
 

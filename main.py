@@ -11,6 +11,7 @@ import numpy as np
 
 from vgg16 import VGG16
 from densenet import DenseNet
+from loss import EMLoss
 from data_manager import *
 
 
@@ -24,9 +25,12 @@ def create_labels(input_labels):
 
 
 
+
+
+
 # Hyper Parameters
 num_epochs = 100
-batch_size = 20
+batch_size = 40
 learning_rate = 1e-4
 #weight_decay = 1e-7
 learning_decay = 0.9
@@ -38,25 +42,31 @@ transform = transforms.Compose([
 ])
 
 
-trainset = torchvision.datasets.CIFAR10(root="Data", train=True, download=False, transform=transform)
 
 
-#net = VGG16()
+
 net = DenseNet(growthRate=12, depth=100, reduction=0.5, nClasses=nr_classes, bottleneck=True)
-#trn_dataset = get_training_data() # Training data
-vld_dataset = None # Validation data
+
+
+trn_id_dataset = ImageDataset("Data/trn_classes", exclude=[0,1]) # Training data
+trn_ood_dataset = ImageDataset("Data/trn_classes", exclude=[2,3,4,5,6,7,8,9])
+
+
+vld_dataset = ImageDataset("Data/trn_classes", exclude=[0,1])
 
 
 
 
 # Loaders handle shufflings and splitting data into batches
-trn_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True)
+trn_id_loader = torch.utils.data.DataLoader(trn_id_dataset, batch_size=batch_size, shuffle=True)
+trn_ood_loader = torch.utils.data.DataLoader(trn_id_dataset, batch_size=int(batch_size/4), shuffle=True)
+
 #vld_loader = torch.utils.data.DataLoader(vld_dataset, batch_size=batch_size)
 
 
 # Criterion calculates the error/loss of the output
 # Optimizer does the backprop to adjust the weights of the NN
-criterion = nn.BCELoss()
+criterion = EMLoss()
 optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate) 
 
 
@@ -66,19 +76,23 @@ for epoch in range(num_epochs):
 
 	loss_sum = 0
 
-	for i, (data, labels) in enumerate(trn_loader):
-		# Load data into GPU using cuda
-		data = data.cuda()
+	ood_iterator = iter(trn_ood_loader)
 
+	for i, (data, labels) in enumerate(trn_id_loader):
+		# Load data into GPU using cuda
+		id_data = data.cuda()
 		#labels = labels.cuda()
 		labels = create_labels(labels)
 
 
+		ood_data = next(ood_iterator)[0].cuda()
+
 		# Forward + Backward + Optimize
 		optimizer.zero_grad()
-		outputs = net(data)
+		id_outputs = net(id_data)
+		ood_outputs = net(ood_data)
 
-		loss = criterion(outputs, labels)
+		loss = criterion(id_outputs, ood_outputs, labels)
 		loss.backward()
 		optimizer.step()
 

@@ -40,7 +40,7 @@ for (data, labels) in trn_loader:
 	class_nr = labels.item()
 
 	img = transforms.ToPILImage(mode="RGB")( torch.squeeze(data, dim=0) )
-	img.save(path+str(class_nr)+"/img"+str(class_counter[class_nr].item())+".jpg")
+	img.save(path+str(class_nr)+"/img"+str(int(class_counter[class_nr].item()))+".jpg")
 
 	class_counter[class_nr] += 1
 

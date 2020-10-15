@@ -9,23 +9,14 @@ from PIL import Image
 import random
 
 
-img_size = 256
 
 
 
-#transform = transforms.Compose([
-#	transforms.Resize((img_size,img_size)),
-#	transforms.ToTensor()
-#])
+# During training, we augment our training data with random flip and random cropping.
 
-
-def get_training_data():
-
-
-	dataset = ImageDataset("Data/img_train_shape", "Data/img_train_skeleton")
-
-	return dataset
-
+transform = transforms.Compose([
+	transforms.ToTensor()
+])
 
 
 
@@ -41,21 +32,32 @@ def set_ood(label):
 # Takes the directory to the input and output files. 
 # Requires the input and output files to have the same names.
 class ImageDataset(torch.utils.data.Dataset):
-	def __init__(self, directory, exclude):
-		
+	def __init__(self, directory, exclude=[]):
+		classes = os.listdir(directory)
+
+		self.file_list = []
+		self.class_list = []
+		excluded_nr = 0
+
+		for i in range(10):
+			if i in exclude:
+				excluded_nr += 1
+				continue
+
+			self.class_list.append(directory+"/"+classes[i])
+			self.file_list = self.file_list +  os.listdir(directory+"/"+classes[i])
+
+		self.files_per_class = int( len(self.file_list) / excluded_nr )
 
 
 	def __getitem__(self, idx):
-		transform = get_random_transform()
-
 		# Load the img and turn it into a Torch tensor matrix
-		link = self.trn_dir+"/"+self.file_list[idx]
+		class_nr = int( idx / self.files_per_class )
+
+		link = self.class_list[ class_nr ] + "/" + self.file_list[idx]
 		data = transform( Image.open(link) )
 
-
-		# Create label
-		link = self.lbl_dir+"/"+self.file_list[idx]
-		label = transform( Image.open(link) )
+		label = torch.tensor([class_nr])
 
 		return (data, label)
 
