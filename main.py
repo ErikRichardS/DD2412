@@ -16,7 +16,7 @@ from data_manager import *
 
 
 
-def create_labels(input_labels, batch_size):
+def create_labels(input_labels, nr_classes, batch_size):
 	labels = torch.zeros(batch_size, nr_classes)
 	for i in range(batch_size):
 		labels[i, input_labels[i].item()] = 1
@@ -25,7 +25,12 @@ def create_labels(input_labels, batch_size):
 
 
 
-def train_classifier(keep_in, leave_out):
+def train_classifier(k, nr_classes):
+
+	ood_classes = [ int(k*2), int(k*2+1) ]
+	id_classes = [x for x in range(nr_classes) if x not in ood_classes]
+
+
 	# Hyper Parameters
 	num_epochs = 100
 	batch_size = 80
@@ -37,8 +42,8 @@ def train_classifier(keep_in, leave_out):
 	net = DenseNet(growthRate=12, depth=100, reduction=0.5, nClasses=nr_classes, bottleneck=True)
 
 
-	trn_id_dataset = ImageDataset("Data/trn_classes", exclude=leave_out) # Training data
-	trn_ood_dataset = ImageDataset("Data/trn_classes", exclude=keep_in)
+	trn_id_dataset = ImageDataset("Data/trn_classes", exclude=ood_classes) # Training data
+	trn_ood_dataset = ImageDataset("Data/trn_classes", exclude=id_classes)
 
 
 	# Loaders handle shufflings and splitting data into batches
@@ -66,7 +71,7 @@ def train_classifier(keep_in, leave_out):
 			# Load data into GPU using cuda
 			id_data = data.cuda()
 			#labels = labels.cuda()
-			labels = create_labels(labels, batch_size)
+			labels = create_labels(labels, nr_classes, len(labels))
 
 
 			ood_data = next(ood_iterator)[0].cuda()
@@ -85,7 +90,7 @@ def train_classifier(keep_in, leave_out):
 		t2 = time()
 		print("Epoch time : %0.3f m \t Loss : %0.3f" % ( (t2-t1)/60 , loss_sum ))
 
-		torch.save(net, "skeleton_net.pt")
+		torch.save(net, "loc" + str(k) + ".pt")
 
 
 
@@ -93,11 +98,8 @@ def train_classifier(keep_in, leave_out):
 
 
 K = 5
-nr_classes = 10
-classes = [i for i in range(nr_classes)]
 
-for i in range(K):
-	ood_classes = classes[ i*2 : i*2+1 ]
-	id_classes = [x for x in classes if x not in ood_classes]
+for k in range(K):
+	
 
-	train_classifier(id_classes, ood_classes)
+	train_classifier(k, 10)
