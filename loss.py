@@ -32,3 +32,11 @@ class EMLoss(nn.Module):
 
 
         return cross_entropy + margin_diff
+
+
+class EntropyLoss(nn.Module):
+    def __init__(self):
+        super(EntropyLoss, self).__init__()
+
+    def forward(self, input_data):
+        return entropy(input_data)

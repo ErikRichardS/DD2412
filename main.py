@@ -34,8 +34,9 @@ def train_classifier(k, nr_classes):
 	# Hyper Parameters
 	num_epochs = 100
 	batch_size = 80
-	learning_rate = 0.01
-	#weight_decay = 1e-7
+	#learning_rate = 0.01
+	learning_rate = np.linspace( 0.1, 0.0001, num_epochs )
+	w_decay = 0.0005
 	learning_decay = 0.9
 
 
@@ -54,13 +55,13 @@ def train_classifier(k, nr_classes):
 
 
 	# Criterion calculates the error/loss of the output
-	# Optimizer does the backprop to adjust the weights of the NN
 	criterion = EMLoss()
-	optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate) 
-
-
+	
 
 	for epoch in range(num_epochs):
+		# Optimizer does the backprop to adjust the weights of the NN
+		optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate[epoch], weight_decay=w_decay) 
+
 		t1 = time()
 
 		loss_sum = 0
@@ -88,6 +89,8 @@ def train_classifier(k, nr_classes):
 			loss_sum += loss
 
 		t2 = time()
+
+
 		print("Epoch time : %0.3f m \t Loss : %0.3f" % ( (t2-t1)/60 , loss_sum ))
 
 		torch.save(net, "loc" + str(k) + ".pt")
@@ -95,6 +98,29 @@ def train_classifier(k, nr_classes):
 
 
 
+def ood_detection(img, classifier_ensemble, nr_classes, epsilon=0.002, temperature=1000):
+	data = torch.unsqueeze( transforms.ToTensor()(img).cuda(), dim=0 )
+
+	class_score = torch.zeros(nr_classes)
+	ood_score = 0
+
+	for classifier in classifier_ensemble:
+		class_score += classifier( data )
+
+		data.requires_grad = True
+		criterion = EntropyLoss()
+		output = classifier( data, temp=temperature )
+		loss = criterion(output)
+		grad = torch.sign( torch.autograd.grad(loss, data)[0] )
+
+		data_perturbed = data - epsilon*grad
+
+		output_perturbed = classifier( data_perturbed, temp=temperature )
+
+		ood_score += max( output_perturbed - (output_perturbed * torch.log(output_perturbed))  ) 
+
+
+	return class_score, ood_score
 
 
 K = 5
