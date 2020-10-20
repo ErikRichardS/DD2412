@@ -14,6 +14,7 @@ import os
 
 from vgg16 import VGG16
 from densenet import DenseNet
+from densenet3 import DenseNet3
 from loss import *
 from data_manager import *
 
@@ -60,7 +61,7 @@ def test_classifier(net, id_loader, ood_loader, threshold=0.6):
 		total_id += len(labels)
 
 		ood_score = ood_detect_score(net, id_data)
-		ood_false += torch.sum(ood_score) / len(labels)
+		ood_false += torch.sum( torch.sum(outputs < 0.5, dim=-1) == 10 )
 
 
 	total_ood = 0
@@ -72,7 +73,7 @@ def test_classifier(net, id_loader, ood_loader, threshold=0.6):
 		outputs = net(ood_data).detach()
 
 		ood_score = ood_detect_score(net, ood_data)
-		ood_true += torch.sum( torch.sum(ood_score < 0.5, dim=-1) == 10 )
+		ood_true += torch.sum( torch.sum(outputs < 0.5, dim=-1) == 10 )
 
 		total_ood += len(labels)
 
@@ -81,7 +82,7 @@ def test_classifier(net, id_loader, ood_loader, threshold=0.6):
 	print(ood_true)
 	#print( float(ood_true) / float(total_ood) )
 
-	return float(correct) / float(total_id),  0.0 #float(ood_true) / float(total_ood) 
+	return float(correct) / float(total_id),  float(ood_true) / float(total_ood) 
 
 
 def save_checkpoint(epoch, net, optimizer, ood_accuracy):
@@ -104,10 +105,12 @@ def load_checkpoint(net, optimizer):
 def checkpoint_exists():
 	return os.path.isfile("checkpoint.pt")
 
+def delete_checkpoint():
+	os.remove("checkpoint.pt") 
+
 
 def train_classifier(k, class_list):
-
-
+	# Set id and ood classes
 	ood_classes = class_list[ int(k*2):int(k*2+2) ]
 	id_classes = [x for x in class_list if x not in ood_classes]
 	nr_classes = len(class_list)
@@ -122,7 +125,8 @@ def train_classifier(k, class_list):
 	learning_decay = 0.9
 
 
-	net = DenseNet(growthRate=12, depth=100, reduction=0.5, nClasses=nr_classes, bottleneck=True)
+	#net = DenseNet(growthRate=12, depth=100, reduction=0.5, nClasses=nr_classes, bottleneck=True)
+	net = DenseNet3(depth=100, num_classes=nr_classes)
 
 
 	trn_id_dataset = ImageDataset(exclude=ood_classes) # Training data
@@ -162,6 +166,7 @@ def train_classifier(k, class_list):
 
 		for param_group in optimizer.param_groups:
 			param_group['lr'] = learning_rate[epoch]
+			#print(param_group['lr'])
 		
 		#print(optimizer.lr)
 
@@ -205,7 +210,7 @@ def train_classifier(k, class_list):
 
 		print("Epoch : %d \t Time : %0.3f m \t Loss : %0.3f \t ID Accuracy %0.4f \t OOD Accuracy %0.4f" % ( epoch , (t2-t1)/60 , loss_sum , id_accuracy , ood_accuracy))
 
-		
+	delete_checkpoint()
 
 
 
