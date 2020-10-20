@@ -133,7 +133,8 @@ def train_classifier(k, class_list):
 	trn_ood_dataset = ImageDataset(exclude=id_classes)
 
 	vld_id_dataset = ImageDataset(exclude=ood_classes, train=False)
-	vld_ood_dataset = ImageDataset(exclude=id_classes, train=False)
+	#vld_ood_dataset = ImageDataset(exclude=id_classes, train=False)
+	vld_ood_dataset = get_SUN_dataset()
 
 
 	# Loaders handle shufflings and splitting data into batches
@@ -204,7 +205,7 @@ def train_classifier(k, class_list):
 		t2 = time()
 
 
-		if id_accuracy > 0.98 and best_ood_accuracy < ood_accuracy:
+		if id_accuracy > 0.85 and best_ood_accuracy < ood_accuracy:
 			best_ood_accuracy = ood_accuracy
 			torch.save(net, "loc" + str(k) + ".pt")
 

@@ -85,3 +85,18 @@ class ImageDataset(torch.utils.data.Dataset):
 
 	def __len__(self):
 		return len(self.file_list)
+
+
+
+
+
+
+def get_SUN_dataset(dataset="iSUN"):
+	if dataset == "iSUN":
+		return torchvision.datasets.ImageFolder("Data/iSUN", transform=transforms.ToTensor())
+
+	elif dataset =="LSUN":
+		return torchvision.datasets.ImageFolder("Data/LSUN", transform=transforms.ToTensor())
+
+	else:
+		return torchvision.datasets.ImageFolder("Data/LSUN_resize", transform=transforms.ToTensor())
