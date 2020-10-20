@@ -17,7 +17,7 @@ import math
 
 
 # https://github.com/bamos/densenet.pytorch/blob/master/densenet.py
-
+# bias = False
 
 class Bottleneck(nn.Module):
     def __init__(self, nChannels, growthRate):
@@ -127,5 +127,6 @@ class DenseNet(nn.Module):
         out = self.trans2(self.dense2(out))
         out = self.dense3(out)
         out = torch.squeeze(F.avg_pool2d(F.relu(self.bn1(out)), 8))
-        out = F.softmax(self.fc(out)/temp, dim=0)
+        out = F.softmax(self.fc(out)/temp, dim=-1) # dim was 1
+
         return out

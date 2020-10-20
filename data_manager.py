@@ -2,7 +2,6 @@ import torch
 from torch.utils.data import TensorDataset, DataLoader
 import torchvision
 from torchvision import transforms
-import torchvision.transforms.functional as F
 
 import os
 from PIL import Image
@@ -13,15 +12,14 @@ import random
 
 
 # During training, we augment our training data with random flip and random cropping.
-
-transform = transforms.Compose([
+"""
+transform_trn = transforms.Compose([
 	transforms.RandomCrop(32, padding=4, padding_mode="constant"),
 	transforms.RandomHorizontalFlip(p=0.5),
 	transforms.RandomVerticalFlip(p=0.4),
 	transforms.ToTensor()
 ])
-
-
+"""
 
 
 def set_ood(label):
@@ -35,32 +33,52 @@ def set_ood(label):
 # Takes the directory to the input and output files. 
 # Requires the input and output files to have the same names.
 class ImageDataset(torch.utils.data.Dataset):
-	def __init__(self, directory, exclude=[]):
-		classes = os.listdir(directory)
+	def __init__(self, exclude=[], train=True):
+		directory = "Data/trn_dataset"
+		if not train:
+			directory = "Data/tst_dataset"
 
 		self.file_list = []
-		self.class_list = []
-		excluded_nr = 0
+		self.label_list =[]
 
 		for i in range(10):
 			if i in exclude:
-				excluded_nr += 1
+				#print(i)
 				continue
 
-			self.class_list.append(directory+"/"+classes[i])
-			self.file_list = self.file_list +  os.listdir(directory+"/"+classes[i])
+			subdir = directory+"/class-"+str(i)
+			#print(subdir)
+			img_list = os.listdir(subdir)
+			for img in img_list:
+				#if int(subdir[-1]) != i:
+				#	print("Error")
 
-		self.files_per_class = int( len(self.file_list) / excluded_nr )
+				self.file_list.append(subdir+"/"+img)
+				self.label_list.append(i)
+
+		#print(self.label_list)
+
+		if train:
+			self.transform = transforms.Compose([
+				transforms.RandomCrop(32, padding=6, padding_mode="constant"),
+				transforms.RandomHorizontalFlip(p=0.5),
+				#transforms.RandomVerticalFlip(p=0.4),
+				transforms.ToTensor()
+			])
+		else:
+			self.transform = transforms.ToTensor()
 
 
 	def __getitem__(self, idx):
 		# Load the img and turn it into a Torch tensor matrix
-		class_nr = int( idx / self.files_per_class )
 
-		link = self.class_list[ class_nr ] + "/" + self.file_list[idx]
-		data = transform( Image.open(link) )
+		link = self.file_list[idx]
+		data = self.transform( Image.open(link) )
 
-		label = torch.tensor([class_nr])
+		label = self.label_list[idx]
+
+		#if int(link[23]) != label:
+		#	print("Error")
 
 		return (data, label)
 

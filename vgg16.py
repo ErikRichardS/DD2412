@@ -54,11 +54,12 @@ class VGG16(nn.Module):
 		)
 		
 		self.lin_layer = nn.Sequential(
-			nn.Linear(8192, 4096),
+			nn.Linear(512, 512),
 			nn.ReLU(),
-			nn.Linear(4096, 2048),
+			nn.Linear(512, 512),
 			nn.ReLU(),
-			nn.Linear(2048, 10)
+			nn.Linear(512, 10),
+			nn.Softmax(dim=1)
 		)
 		
 		self.cuda()
