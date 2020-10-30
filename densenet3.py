@@ -3,8 +3,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+# ODIN has code a version they supposedly uses. Doesn't work because they forgot to int() value used for range().
+# https://github.com/facebookresearch/odin 
 
-# https://github.com/facebookresearch/odin
+# Same version as ODIN but works because they used int().
+# https://github.com/andreasveit/densenet-pytorch/blob/master/densenet.py
 
 class BasicBlock(nn.Module):
     def __init__(self, in_planes, out_planes, dropRate=0.0):

@@ -11,7 +11,6 @@ def entropy(p):
 
 # Entropy based Margin-Loss
 class EMLoss(nn.Module):
-
     def __init__(self, beta=1.0, margin=0.4):
         super(EMLoss, self).__init__()
 
