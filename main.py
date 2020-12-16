@@ -211,10 +211,6 @@ def train_classifier(id_classes, ood_classes):
 
 
 
-
-
-
-
 class_partitions = []
 
 if os.path.isfile("partitions.pt"):

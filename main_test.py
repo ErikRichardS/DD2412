@@ -26,7 +26,7 @@ class_list = []
 conversion_matrix = []
 classifier_ensemble = []
 
-
+# Load in necessary information
 for k in range(5):
 	id_classes, ood_classes = get_id_ood_partitions(class_partitions, k)
 	conv_mat = torch.transpose(create_conversion_matrix( nr_classes, id_classes), 0, 1).cuda()
@@ -39,22 +39,21 @@ for k in range(5):
 
 
 def calculate_ood_scores(loader, temp):
-	#correct = 0
 	total = len(loader)
 
-	ood_total = 0
-	for (data, labels) in loader:
+	ood_scores = [0 for i in range(total)]
+	for i, (data, labels) in enumerate(loader):
 		data = data.cuda()
 
 		class_score, ood_score = ood_detection(data, classifier_ensemble, conversion_matrix, nr_classes, temp)
-		#correct += torch.sum( torch.argmax(class_score, dim=-1) == torch.argmax(labels, dim=-1) ).item()
-		ood_total += torch.sum(ood_score)
+		
+		ood_scores[i] = torch.sum(ood_score)
 
 
-	return ood_total.item()
+	return ood_scores
 
 
-batch_size = 50
+batch_size = 1
 
 testset_name_1 = "LSUN"
 testset_name_2 = "LSUN_resize"
@@ -70,9 +69,10 @@ vld_ood_loader_2 = torch.utils.data.DataLoader(vld_ood_dataset_2, batch_size=bat
 
 temperature = [1, 10, 100, 1000]
 
-id_score = torch.zeros(len(temperature))
-ood_score_1 = torch.zeros(len(temperature))
-ood_score_2 = torch.zeros(len(temperature))
+id_score = [[] for i in range(len(temperature))]
+ood_score_1 = [[] for i in range(len(temperature))]
+ood_score_2 = [[] for i in range(len(temperature))]
+
 
 for i, t in enumerate(temperature):
 	print("T : %d" % t)
