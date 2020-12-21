@@ -38,22 +38,33 @@ for k in range(5):
 
 
 
-def calculate_ood_scores(loader, temp):
-	total = len(loader)
+def calculate_ood_scores(loader, temp, n, is_id=False):
+	
+	ood_scores = torch.zeros(n)
+	j = 0
 
-	ood_scores = [0 for i in range(total)]
-	for i, (data, labels) in enumerate(loader):
+	correct = 0
+
+	for data, labels in loader:
 		data = data.cuda()
 
 		class_score, ood_score = ood_detection(data, classifier_ensemble, conversion_matrix, nr_classes, temp)
-		
-		ood_scores[i] = torch.sum(ood_score)
+
+		if is_id:
+			class_ind = torch.argmax(class_score, 1)
+			labels = torch.argmax(labels, 1)
+
+			correct += torch.sum( class_ind == labels)		
+
+		l = len(labels)
+		ood_scores[j:j+l] = ood_score.cpu()
+		j += l
 
 
-	return ood_scores
+	return ood_scores, float(correct) / float(n)
 
 
-batch_size = 1
+batch_size = 50
 
 testset_name_1 = "LSUN"
 testset_name_2 = "LSUN_resize"
@@ -62,6 +73,9 @@ vld_id_dataset = ImageDataset(include=class_list, train=False)
 vld_ood_dataset_1 = get_SUN_dataset(testset_name_1)
 vld_ood_dataset_2 = get_SUN_dataset(testset_name_2)
 
+id_len = len(vld_id_dataset)
+ood1_len = len(vld_ood_dataset_1)
+ood2_len = len(vld_ood_dataset_2)
 
 vld_id_loader = torch.utils.data.DataLoader(vld_id_dataset, batch_size=batch_size, shuffle=False)
 vld_ood_loader_1 = torch.utils.data.DataLoader(vld_ood_dataset_1, batch_size=batch_size, shuffle=False)
@@ -69,19 +83,22 @@ vld_ood_loader_2 = torch.utils.data.DataLoader(vld_ood_dataset_2, batch_size=bat
 
 temperature = [1, 10, 100, 1000]
 
-id_score = [[] for i in range(len(temperature))]
-ood_score_1 = [[] for i in range(len(temperature))]
-ood_score_2 = [[] for i in range(len(temperature))]
+id_score = [torch.zeros(1) for i in range(len(temperature))]
+ood_score_1 = [torch.zeros(1) for i in range(len(temperature))]
+ood_score_2 = [torch.zeros(1) for i in range(len(temperature))]
 
 
 for i, t in enumerate(temperature):
 	print("T : %d" % t)
-	av_id = calculate_ood_scores(vld_id_loader, t) / float(len(vld_id_dataset))
-	av_ood_1 = calculate_ood_scores(vld_ood_loader_1, t) / float(len(vld_ood_dataset_1))
-	av_ood_2 = calculate_ood_scores(vld_ood_loader_2, t) / float(len(vld_ood_dataset_2))
-	print(av_id)
-	print(av_ood_1)
-	print(av_ood_2)
+	av_id, accuracy = calculate_ood_scores(vld_id_loader, t, id_len, is_id=True)
+	print("ID done")
+	print("Correct %0.4f" % accuracy)
+
+	av_ood_1, _ = calculate_ood_scores(vld_ood_loader_1, t, ood1_len)
+	print("OOD 1 done") 
+	av_ood_2, _ = calculate_ood_scores(vld_ood_loader_2, t, ood2_len)
+	print("OOD 2 done") 
+
 
 	id_score[i] = av_id
 	ood_score_1[i] = av_ood_1
